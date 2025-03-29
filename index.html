@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Januz Malaj: Blue Hat Soldier</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #333;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            border: 1px solid white;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 16px;
+        }
+        #health-bar {
+            width: 200px;
+            height: 20px;
+            background: #555;
+            border: 1px solid white;
+        }
+        #health-fill {
+            height: 100%;
+            background: #f00;
+            transition: width 0.3s;
+        }
+        #weapon-ui {
+            position: absolute;
+            top: 40px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .weapon-btn {
+            padding: 5px 10px;
+            background: #444;
+            color: white;
+            border: 1px solid white;
+            cursor: pointer;
+        }
+        .weapon-btn.active {
+            background: #f90;
+        }
+        #achievements {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: yellow;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="health-bar"><div id="health-fill"></div></div>
+        <div id="weapon-ui"></div>
+        <div id="hud"></div>
+        <div id="timer"></div>
+    </div>
+    <div id="achievements"></div>
+    <script src="lib/phaser.min.js"></script>
+    <script>
+        if (typeof Phaser === 'undefined') {
+            document.body.innerHTML = '<p style="color: red;">Phaser not loaded. Check lib/phaser.min.js path.</p>';
+        } else {
+            const config = {
+                type: Phaser.AUTO,
+                width: 800,
+                height: 400,
+                physics: {
+                    default: 'arcade',
+                    arcade: {
+                        gravity: { y: 500 },
+                        debug: false
+                    }
+                },
+                scene: [IntroScene, WeaponInfoScene, NikajMerturiLevel],
+                pixelArt: true
+            };
+
+            const game = new Phaser.Game(config);
+
+            class IntroScene extends Phaser.Scene {
+                constructor() {
+                    super({ key: 'IntroScene' });
+                }
+
+                create() {
+                    this.add.rectangle(400, 200, 800, 400, 0x333333);
+                    this.cameras.main.fadeIn(2000);
+
+                    const story = [
+                        "In Nikaj Mërturi’s forests, Januz Malaj survived a burning village.",
+                        "A commando forged in this land, he wears the blue hat of hope.",
+                        "General Varkis’s drones and soldiers now scar his homeland.",
+                        "With Mira’s aid, Januz faces Z-9, the Silent Enforcer.",
+                        "Time runs short. Nikaj Mërturi calls its son to fight."
+                    ];
+
+                    let currentLine = 0;
+                    const text = this.add.text(400, 150, '', {
+                        fontSize: '20px',
+                        fill: '#fff',
+                        align: 'center',
+                        wordWrap: { width: 700 }
+                    }).setOrigin(0.5);
+
+                    const typeLine = () => {
+                        if (currentLine < story.length) {
+                            let i = 0;
+                            const line = story[currentLine];
+                            this.time.addEvent({
+                                delay: 50,
+                                repeat: line.length - 1,
+                                callback: () => {
+                                    text.setText(line.substring(0, i + 1));
+                                    i++;
+                                }
+                            });
+                            currentLine++;
+                            this.time.delayedCall(3000, typeLine);
+                        } else {
+                            this.add.text(400, 300, 'Press ENTER to Continue', {
+                                fontSize: '24px',
+                                fill: '#ff0'
+                            }).setOrigin(0.5);
+                        }
+                    };
+                    typeLine();
+
+                    this.input.keyboard.on('keydown-ENTER', () => {
+                        this.cameras.main.fadeOut(1000);
+                        this.time.delayedCall(1000, () => this.scene.start('WeaponInfoScene'));
+                    });
+                }
+            }
+
+            class WeaponInfoScene extends Phaser.Scene {
+                constructor() {
+                    super({ key: 'WeaponInfoScene' });
+                }
+
+                create() {
+                    this.add.rectangle(400, 200, 800, 400, 0x8B4513);
+                    this.cameras.main.fadeIn(1000);
+
+                    const weapons = [
+                        { name: 'PX4 Storm', color: 0x000000, info: 'Light pistol: 20 dmg, fast fire rate, 15 rounds.' },
+                        { name: 'M4 Carbine', color: 0x4B5320, info: 'Rifle: 25 dmg, high accuracy, 30 rounds.' },
+                        { name: 'M203', color: 0x2F4F4F, info: 'Grenade launcher: 50 dmg, small AoE, 5 rounds.' },
+                        { name: 'RPG-7', color: 0x2E8B57, info: 'Rocket launcher: 100 dmg, large AoE, 3 rounds.' }
+                    ];
+
+                    let yPos = 50;
+                    weapons.forEach(weapon => {
+                        this.add.rectangle(100, yPos + 25, 50, 30, weapon.color);
+                        this.add.text(200, yPos, weapon.name, { fontSize: '20px', fill: '#fff' });
+                        this.add.text(200, yPos + 20, weapon.info, { fontSize: '16px', fill: '#ccc', wordWrap: { width: 500 } });
+                        yPos += 80;
+                    });
+
+                    this.add.text(400, 350, 'Press ENTER to Start Mission', {
+                        fontSize: '24px',
+                        fill: '#ff0'
+                    }).setOrigin(0.5);
+
+                    this.input.keyboard.on('keydown-ENTER', () => {
+                        this.cameras.main.fadeOut(1000);
+                        this.time.delayedCall(1000, () => this.scene.start('NikajMerturiLevel'));
+                    });
+                }
+            }
+
+            class NikajMerturiLevel extends Phaser.Scene {
+                constructor() {
+                    super({ key: 'NikajMerturiLevel' });
+                }
+
+                preload() {
+                    // Preload sound effects using Web Audio API
+                    this.jumpSound = new Audio('https://www.soundjay.com/buttons/beep-01a.mp3');
+                    this.shootSound = new Audio('https://www.soundjay.com/gun/gunshot-01.mp3');
+                    this.explosionSound = new Audio('https://www.soundjay.com/explosions/explosion-01.mp3');
+                }
+
+                create() {
+                    this.cameras.main.setBounds(0, 0, 1600, 400);
+                    this.physics.world.setBounds(0, 0, 1600, 400);
+                    this.add.rectangle(800, 200, 1600, 400, 0x006400);
+
+                    // Dynamic weather (rain)
+                    this.rain = this.add.particles(0, 0, null, {
+                        x: { min: 0, max: 1600 },
+                        y: { min: -10, max: 400 },
+                        speedY: 300,
+                        lifespan: 1000,
+                        quantity: 2,
+                        scale: { start: 0.2, end: 0.1 },
+                        tint: 0x87CEEB
+                    }).start();
+
+                    this.lights.enable().setAmbientColor(0x555555);
+                    this.playerLight = this.lights.addLight(0, 0, 200, 0xFFFFCC, 1);
+                    this.cameras.main.fadeIn(1000);
+
+                    const platforms = this.physics.add.staticGroup();
+                    platforms.create(800, 360, null).setSize(1600, 40).setDisplaySize(1600, 40).setTint(0x654321).setPipeline('Light2D');
+                    platforms.create(200, 250, null).setSize(320, 40).setDisplaySize(320, 40).setTint(0x654321).setPipeline('Light2D');
+                    platforms.create(600, 200, null).setSize(320, 40).setDisplaySize(320, 40).setTint(0x654321).setPipeline('Light2D');
+                    platforms.create(1000, 150, null).setSize(320, 40).setDisplaySize(320, 40).setTint(0x654321).setPipeline('Light2D');
+                    platforms.create(1400, 200, null).setSize(320, 40).setDisplaySize(320, 40).setTint(0x654321).setPipeline('Light2D');
+
+                    this.player = this.physics.add.sprite(50, 300, null).setSize(40, 60).setDisplaySize(40, 60).setTint(0x228B22);
+                    this.player.setBounce(0.1);
+                    this.player.setCollideWorldBounds(true);
+                    this.player.body.setGravityY(300);
+                    const hat = this.add.rectangle(0, -25, 20, 10, 0x0000FF).setOrigin(0.5, 1);
+                    this.player.addChild = hat;
+                    this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+                    this.player.setPipeline('Light2D');
+
+                    this.enemies = this.physics.add.group();
+                    for (let i = 0; i < 12; i++) {
+                        const soldier = this.enemies.create(200 + i * 120, 300, null).setSize(40, 60).setDisplaySize(40, 60).setTint(0xFF0000);
+                        soldier.setBounce(0.1);
+                        soldier.setCollideWorldBounds(true);
+                        soldier.health = 50;
+                        soldier.direction = -1;
+                        soldier.speed = 100;
+                        soldier.setPipeline('Light2D');
+                        soldier.shootTimer = this.time.addEvent({
+                            delay: Phaser.Math.Between(2000, 5000),
+                            callback: () => this.enemyShoot(soldier),
+                            loop: true
+                        });
+                    }
+                    for (let i = 0; i < 7; i++) {
+                        const drone = this.enemies.create(300 + i * 180, 100, null).setSize(30, 30).setDisplaySize(30, 30).setTint(0x808080);
+                        drone.setBounce(0.1);
+                        drone.setCollideWorldBounds(true);
+                        drone.health = 30;
+                        drone.direction = 1;
+                        drone.speed = 150;
+                        drone.body.setGravityY(0);
+                        drone.setPipeline('Light2D');
+                    }
+                    this.boss = this.enemies.create(1500, 100, null).setSize(60, 60).setDisplaySize(60, 60).setTint(0x000000);
+                    this.boss.setBounce(0.1);
+                    this.boss.setCollideWorldBounds(true);
+                    this.boss.health = 500;
+                    this.boss.direction = -1;
+                    this.boss.speed = 100;
+                    this.boss.body.setGravityY(0);
+                    this.boss.setPipeline('Light2D');
+                    this.boss.phase = 1;
+
+                    this.bullets = this.physics.add.group({ maxSize: 20 });
+                    this.grenades = this.physics.add.group({ maxSize: 5 });
+                    this.rockets = this.physics.add.group({ maxSize: 3 });
+
+                    this.pickups = this.physics.add.group();
+                    this.pickups.create(600, 160, null).setSize(20, 20).setDisplaySize(20, 20).setTint(0xFF00FF).setGravityY(0).setPipeline('Light2D');
+                    this.pickups.create(1000, 110, null).setSize(20, 20).setDisplaySize(20, 20).setTint(0xFFFF00).setGravityY(0).setPipeline('Light2D');
+                    this.pickups.create(1400, 50, null).setSize(20, 20).setDisplaySize(20, 20).setTint(0xFF00FF).setGravityY(0).setPipeline('Light2D');
+
+                    this.upgradePoints = this.physics.add.group();
+
+                    this.physics.add.collider(this.player, platforms);
+                    this.physics.add.collider(this.enemies, platforms);
+                    this.physics.add.collider(this.bullets, this.enemies, this.hitEnemy, null, this);
+                    this.physics.add.collider(this.grenades, this.enemies, this.explodeGrenade, null, this);
+                    this.physics.add.collider(this.rockets, this.enemies, this.explodeRocket, null, this);
+                    this.physics.add.collider([this.bullets, this.grenades, this.rockets], platforms, (proj) => proj.destroy());
+                    this.physics.add.overlap(this.player, this.pickups, this.collectPickup, null, this);
+                    this.physics.add.overlap(this.player, this.upgradePoints, this.collectUpgradePoint, null, this);
+
+                    this.cursors = this.input.keyboard.createCursorKeys();
+                    this.keys = this.input.keyboard.addKeys({
+                        w: Phaser.Input.Keyboard.KeyCodes.W,
+                        a: Phaser.Input.Keyboard.KeyCodes.A,
+                        s: Phaser.Input.Keyboard.KeyCodes.S,
+                        d: Phaser.Input.Keyboard.KeyCodes.D,
+                        shift: Phaser.Input.Keyboard.KeyCodes.SHIFT,
+                        one: Phaser.Input.Keyboard.KeyCodes.ONE,
+                        two: Phaser.Input.Keyboard.KeyCodes.TWO,
+                        three: Phaser.Input.Keyboard.KeyCodes.THREE,
+                        four: Phaser.Input.Keyboard.KeyCodes.FOUR,
+                        r: Phaser.Input.Keyboard.KeyCodes.R,
+                        u: Phaser.Input.Keyboard.KeyCodes.U
+                    });
+                    this.input.on('pointerdown', this.shoot, this);
+
+                    this.hud = document.getElementById('hud');
+                    this.timerText = document.getElementById('timer');
+                    this.timeLeft = 120;
+                    this.time.addEvent({
+                        delay: 1000,
+                        callback: () => {
+                            this.timeLeft--;
+                            this.timerText.textContent = `Time: ${this.timeLeft}`;
+                            if (this.timeLeft <= 0) this.gameOver('Time’s up! Nikaj Mërturi falls.');
+                        },
+                        repeat: 119
+                    });
+
+                    this.weapons = {
+                        'PX4 Storm': { ammo: 15, maxAmmo: 15, damage: 20, speed: 500, type: 'bullet', level: 0 },
+                        'M4 Carbine': { ammo: 30, maxAmmo: 30, damage: 25, speed: 600, type: 'bullet', level: 0 },
+                        'M203': { ammo: 5, maxAmmo: 5, damage: 50, speed: 300, type: 'grenade', level: 0 },
+                        'RPG-7': { ammo: 3, maxAmmo: 3, damage: 100, speed: 200, type: 'rocket', level: 0 }
+                    };
+                    this.currentWeapon = 'PX4 Storm';
+                    this.playerHealth = 100;
+                    this.upgradePointsCount = 0;
+
+                    // Load progress
+                    const savedData = localStorage.getItem('januzProgress');
+                    if (savedData) {
+                        const { points, weaponLevels } = JSON.parse(savedData);
+                        this.upgradePointsCount = points;
+                        Object.keys(weaponLevels).forEach(key => {
+                            this.weapons[key].level = weaponLevels[key];
+                        });
+                    }
+
+                    // Weapon UI
+                    const weaponUI = document.getElementById('weapon-ui');
+                    Object.keys(this.weapons).forEach(name => {
+                        const btn = document.createElement('button');
+                        btn.textContent = name;
+                        btn.className = 'weapon-btn';
+                        btn.onclick = () => {
+                            this.currentWeapon = name;
+                            document.querySelectorAll('.weapon-btn').forEach(b => b.classList.remove('active'));
+                            btn.classList.add('active');
+                            this.updateHUD();
+                        };
+                        if (name === this.currentWeapon) btn.classList.add('active');
+                        weaponUI.appendChild(btn);
+                    });
+
+                    this.updateHUD();
+                    this.updateHealthBar();
+                    this.achievements = [];
+                    this.updateAchievements();
+                }
+
+                update() {
+                    this.playerLight.x = this.player.x;
+                    this.playerLight.y = this.player.y;
+
+                    if (this.cursors.left.isDown || this.keys.a.isDown) {
+                        this.player.setVelocityX(-200);
+                        this.player.flipX = true;
+                    } else if (this.cursors.right.isDown || this.keys.d.isDown) {
+                        this.player.setVelocityX(200);
+                        this.player.flipX = false;
+                    } else {
+                        this.player.setVelocityX(0);
+                    }
+
+                    if ((this.cursors.up.isDown || this.keys.w.isDown || this.cursors.space.isDown) && this.player.body.touching.down) {
+                        this.player.setVelocityY(-300);
+                        this.jumpSound.play();
+                        this.add.particles(this.player.x, this.player.y + 30, null, {
+                            speed: 50,
+                            lifespan: 300,
+                            quantity: 5,
+                            scale: 0.2,
+                            tint: 0xD2B48C
+                        }).explode();
+                    }
+
+                    if (this.keys.shift.isDown) {
+                        this.player.setVelocityX(this.player.body.velocity.x * 1.5);
+                    }
+
+                    if (this.keys.one.isDown) this.currentWeapon = 'PX4 Storm';
+                    if (this.keys.two.isDown) this.currentWeapon = 'M4 Carbine';
+                    if (this.keys.three.isDown) this.currentWeapon = 'M203';
+                    if (this.keys.four.isDown) this.currentWeapon = 'RPG-7';
+                    if (this.keys.r.isDown && this.weapons[this.currentWeapon].ammo < this.weapons[this.currentWeapon].maxAmmo) {
+                        this.reloadWeapon();
+                    }
+                    if (this.keys.u.isDown) {
+                        this.upgradeWeapon();
+                    }
+
+                    this.enemies.children.iterate(enemy => {
+                        enemy.setVelocityX(enemy.speed * enemy.direction);
+                        if (enemy.width === 60) { // Boss
+                            if (enemy.health < 250 && this.boss.phase === 1) {
+                                this.boss.phase = 2;
+                                this.boss.speed = 150;
+                            }
+                            if (enemy.x < 1300 || enemy.x > 1500) enemy.direction *= -1;
+                            if (Phaser.Math.Between(0, 100) < 2) this.bossShoot(enemy);
+                        } else {
+                            if (enemy.x < 50 || enemy.x > 1550) enemy.direction *= -1;
+                        }
+                    });
+
+                    if (this.boss && this.boss.health <= 0) {
+                        this.gameOver('Victory! Nikaj Mërturi is free.');
+                        this.addAchievement('Boss Slayer');
+                    }
+
+                    this.updateHUD();
+                }
+
+                shoot() {
+                    const weapon = this.weapons[this.currentWeapon];
+                    if (weapon.ammo > 0) {
+                        let projectile;
+                        if (weapon.type === 'bullet') {
+                            projectile = this.bullets.create(this.player.x + (this.player.flipX ? -20 : 20), this.player.y, null)
+                                .setSize(5, 2).setDisplaySize(5, 2).setTint(0xFFFF00);
+                        } else if (weapon.type === 'grenade') {
+                            projectile = this.grenades.create(this.player.x + (this.player.flipX ? -20 : 20), this.player.y, null)
+                                .setSize(10, 10).setDisplaySize(10, 10).setTint(0x00FF00);
+                            projectile.setVelocityY(-100);
+                        } else if (weapon.type === 'rocket') {
+                            projectile = this.rockets.create(this.player.x + (this.player.flipX ? -20 : 20), this.player.y, null)
+                                .setSize(15, 5).setDisplaySize(15, 5).setTint(0xFF4500);
+                        }
+                        if (projectile) {
+                            projectile.setVelocityX(this.player.flipX ? -weapon.speed : weapon.speed);
+                            projectile.damage = weapon.damage;
+                            projectile.setPipeline('Light2D');
+                            weapon.ammo--;
+                            this.shootSound.play();
+                            this.updateHUD();
+                        }
+                    }
+                }
+
+                enemyShoot(enemy) {
+                    const bullet = this.bullets.create(enemy.x, enemy.y + 20, null).setSize(5, 2).setDisplaySize(5, 2).setTint(0xFFFF00);
+                    bullet.setVelocityX(enemy.x > this.player.x ? -200 : 200);
+                    bullet.damage = 10;
+                    bullet.setPipeline('Light2D');
+                    this.physics.add.collider(bullet, this.player, () => {
+                        bullet.destroy();
+                        this.playerHealth -= 10;
+                        this.updateHealthBar();
+                        if (this.playerHealth <= 0) this.gameOver('Januz has fallen.');
+                    });
+                }
+
+                bossShoot(boss) {
+                    if (boss.phase === 1) {
+                        const bullet = this.bullets.create(boss.x, boss.y + 20, null).setSize(5, 2).setDisplaySize(5, 2).setTint(0xFFFF00);
+                        bullet.setVelocityX(-200);
+                        bullet.damage = 10;
+                        bullet.setPipeline('Light2D');
+                        this.physics.add.collider(bullet, this.player, () => {
+                            bullet.destroy();
+                            this.playerHealth -= 10;
+                            this.updateHealthBar();
+                            if (this.playerHealth <= 0) this.gameOver('Januz has fallen.');
+                        });
+                    } else {
+                        for (let i = -1; i <= 1; i++) {
+                            const rocket = this.rockets.create(boss.x, boss.y, null).setSize(15, 5).setDisplaySize(15, 5).setTint(0xFF4500);
+                            rocket.setVelocityX(-200 + i * 50);
+                            rocket.damage = 20;
+                            rocket.setPipeline('Light2D');
+                            this.physics.add.collider(rocket, this.player, () => {
+                                rocket.destroy();
+                                this.playerHealth -= 20;
+                                this.updateHealthBar();
+                                if (this.playerHealth <= 0) this.gameOver('Januz has fallen.');
+                            });
+                        }
+                    }
+                }
+
+                hitEnemy(bullet, enemy) {
+                    bullet.destroy();
+                    enemy.health -= bullet.damage;
+                    if (enemy.health <= 0) {
+                        this.dropUpgradePoint(enemy);
+                        enemy.destroy();
+                    }
+                }
+
+                explodeGrenade(grenade, enemy) {
+                    grenade.destroy();
+                    this.explosionSound.play();
+                    this.add.particles(grenade.x, grenade.y, null, {
+                        speed: 100,
+                        lifespan: 500,
+                        quantity: 20,
+                        scale: 0.5,
+                        tint: 0xFFA500
+                    }).explode();
+                    enemy.health -= grenade.damage;
+                    if (enemy.health <= 0) {
+                        this.dropUpgradePoint(enemy);
+                        enemy.destroy();
+                    }
+                    this.enemies.children.iterate(e => {
+                        if (Phaser.Math.Distance.Between(e.x, e.y, grenade.x, grenade.y) < 50) {
+                            e.health -= 25;
+                            if (e.health <= 0) {
+                                this.dropUpgradePoint(e);
+                                e.destroy();
+                            }
+                        }
+                    });
+                }
+
+                explodeRocket(rocket, enemy) {
+                    rocket.destroy();
+                    this.explosionSound.play();
+                    this.add.particles(rocket.x, rocket.y, null, {
+                        speed: 150,
+                        lifespan: 700,
+                        quantity: 30,
+                        scale: 0.7,
+                        tint: 0xFF4500
+                    }).explode();
+                    enemy.health -= rocket.damage;
+                    if (enemy.health <= 0) {
+                        this.dropUpgradePoint(enemy);
+                        enemy.destroy();
+                    }
+                    this.enemies.children.iterate(e => {
+                        if (Phaser.Math.Distance.Between(e.x, e.y, rocket.x, rocket.y) < 100) {
+                            e.health -= 50;
+                            if (e.health <= 0) {
+                                this.dropUpgradePoint(e);
+                                e.destroy();
+                            }
+                        }
+                    });
+                }
+
+                dropUpgradePoint(enemy) {
+                    const points = enemy.width === 60 ? 50 : enemy.width === 40 ? 10 : 5;
+                    const upgrade = this.upgradePoints.create(enemy.x, enemy.y, null)
+                        .setSize(15, 15).setDisplaySize(15, 15).setTint(0x00FFFF);
+                    upgrade.points = points;
+                    upgrade.setGravityY(0);
+                    upgrade.setPipeline('Light2D');
+                }
+
+                collectUpgradePoint(player, upgrade) {
+                    this.upgradePointsCount += upgrade.points;
+                    upgrade.destroy();
+                    this.updateHUD();
+                    if (this.upgradePointsCount >= 100 && !this.achievements.includes('Point Master')) {
+                        this.addAchievement('Point Master');
+                    }
+                }
+
+                collectPickup(player, pickup) {
+                    if (pickup.tintTopLeft === 0xFF00FF) {
+                        this.playerHealth = Math.min(this.playerHealth + 25, 100);
+                    } else if (pickup.tintTopLeft === 0xFFFF00) {
+                        for (let weapon in this.weapons) {
+                            this.weapons[weapon].ammo = this.weapons[weapon].maxAmmo;
+                        }
+                    }
+                    pickup.destroy();
+                    this.updateHUD();
+                    this.updateHealthBar();
+                }
+
+                reloadWeapon() {
+                    const weapon = this.weapons[this.currentWeapon];
+                    if (weapon.ammo < weapon.maxAmmo) {
+                        weapon.ammo = weapon.maxAmmo;
+                        this.time.delayedCall(1000, this.updateHUD);
+                    }
+                }
+
+                upgradeWeapon() {
+                    const weapon = this.weapons[this.currentWeapon];
+                    const costs = [20, 40, 60];
+                    const nextLevel = weapon.level + 1;
+
+                    if (nextLevel <= 2 && this.upgradePointsCount >= costs[nextLevel]) {
+                        this.upgradePointsCount -= costs[nextLevel];
+                        weapon.level = nextLevel;
+
+                        switch (this.currentWeapon) {
+                            case 'PX4 Storm':
+                                weapon.damage = [20, 30, 40][nextLevel];
+                                weapon.maxAmmo = [15, 20, 25][nextLevel];
+                                weapon.speed = [500, 550, 600][nextLevel];
+                                break;
+                            case 'M4 Carbine':
+                                weapon.damage = [25, 35, 45][nextLevel];
+                                weapon.maxAmmo = [30, 40, 50][nextLevel];
+                                weapon.speed = [600, 650, 700][nextLevel];
+                                break;
+                            case 'M203':
+                                weapon.damage = [50, 75, 100][nextLevel];
+                                weapon.maxAmmo = [5, 7, 10][nextLevel];
+                                weapon.speed = [300, 350, 400][nextLevel];
+                                break;
+                            case 'RPG-7':
+                                weapon.damage = [100, 150, 200][nextLevel];
+                                weapon.maxAmmo = [3, 5, 7][nextLevel];
+                                weapon.speed = [200, 250, 300][nextLevel];
+                                break;
+                        }
+                        weapon.ammo = weapon.maxAmmo;
+                        this.updateHUD();
+                        if (!this.achievements.includes('Weapon Master')) {
+                            this.addAchievement('Weapon Master');
+                        }
+                    }
+                }
+
+                updateHUD() {
+                    this.hud.textContent = `Health: ${this.playerHealth}\nWeapon: ${this.currentWeapon} (Lv${this.weapons[this.currentWeapon].level})\nAmmo: ${this.weapons[this.currentWeapon].ammo}/${this.weapons[this.currentWeapon].maxAmmo}\nPoints: ${this.upgradePointsCount}`;
+                    localStorage.setItem('januzProgress', JSON.stringify({
+                        points: this.upgradePointsCount,
+                        weaponLevels: Object.fromEntries(Object.entries(this.weapons).map(([k, v]) => [k, v.level]))
+                    }));
+                }
+
+                updateHealthBar() {
+                    document.getElementById('health-fill').style.width = `${(this.playerHealth / 100) * 200}px`;
+                }
+
+                addAchievement(name) {
+                    if (!this.achievements.includes(name)) {
+                        this.achievements.push(name);
+                        this.updateAchievements();
+                    }
+                }
+
+                updateAchievements() {
+                    document.getElementById('achievements').textContent = `Achievements: ${this.achievements.join(', ')}`;
+                }
+
+                gameOver(message) {
+                    this.physics.pause();
+                    this.add.text(400, 200, message, {
+                        fontSize: '32px',
+                        fill: '#fff'
+                    }).setOrigin(0.5).setScrollFactor(0);
+                    this.time.delayedCall(3000, () => this.scene.restart());
+                }
+            }
+        }
+    </script>
+</body>
+</html>
